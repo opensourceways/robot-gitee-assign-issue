@@ -2,18 +2,21 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	sdk "gitee.com/openeuler/go-gitee/gitee"
 	"github.com/opensourceways/community-robot-lib/giteeclient"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 const (
-	msgAssignDone       = "This issue is assigned to: ***%s***."
-	msgMultipleAssignee = "Can only assign one assignee to the issue."
-	msgAssignRepeatedly = "This issue is already assigned to ***%s***. Please do not assign repeatedly."
-	msgNotAllowAssign   = "This issue can not be assigned to ***%s***. Please try to assign to the repository collaborators."
-	msgUnassignDone     = "***%s*** is unassigned from this issue."
-	msgNotAllowUnassign = "***%s*** can not be unassigned from this issue. Please try to unassign the assignee from this issue."
+	msgAssignDone                 = "This issue is assigned to: ***%s***."
+	msgMultipleAssignee           = "Can only assign one assignee to the issue."
+	msgAssignRepeatedly           = "This issue is already assigned to ***%s***. Please do not assign repeatedly."
+	msgNotAllowAssign             = "This issue can not be assigned to ***%s***. Please try to assign to the repository collaborators."
+	msgUnassignDone               = "***%s*** is unassigned from this issue."
+	msgNotAllowUnassign           = "***%s*** can not be unassigned from this issue. Please try to unassign the assignee from this issue."
+	msgCollaboratorCantAsAssignee = "The issue collaborator ***%s*** cannot be assigned as the assignee at the same time."
 )
 
 func (bot *robot) handleAssign(e *sdk.NoteEvent) error {
@@ -24,6 +27,14 @@ func (bot *robot) handleAssign(e *sdk.NoteEvent) error {
 	currentAssignee := ""
 	if e.Issue.Assignee != nil {
 		currentAssignee = e.Issue.Assignee.Login
+	}
+
+	currentCollaborators := func() sets.String {
+		c := sets.NewString()
+		for _, v := range e.Issue.Collaborators {
+			c.Insert(v.Login)
+		}
+		return c
 	}
 
 	writeComment := func(s string) error {
@@ -41,6 +52,10 @@ func (bot *robot) handleAssign(e *sdk.NoteEvent) error {
 		}
 
 		newOne := assign.UnsortedList()[0]
+		if c := currentCollaborators(); c.Len() > 0 && c.Has(newOne) {
+			return writeComment(fmt.Sprintf(msgCollaboratorCantAsAssignee, newOne))
+		}
+
 		err := bot.cli.AssignGiteeIssue(org, repo, number, newOne)
 		if err == nil {
 			return writeComment(fmt.Sprintf(msgAssignDone, newOne))
@@ -58,7 +73,7 @@ func (bot *robot) handleAssign(e *sdk.NoteEvent) error {
 			}
 			return writeComment(fmt.Sprintf(msgUnassignDone, currentAssignee))
 		} else {
-			return writeComment(fmt.Sprintf(msgNotAllowUnassign, unassign.UnsortedList()[0]))
+			return writeComment(fmt.Sprintf(msgNotAllowUnassign, strings.Join(unassign.UnsortedList(), ",")))
 		}
 	}
 
