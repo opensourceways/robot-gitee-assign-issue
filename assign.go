@@ -6,7 +6,6 @@ import (
 
 	sdk "gitee.com/openeuler/go-gitee/gitee"
 	"github.com/opensourceways/community-robot-lib/giteeclient"
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 const (
@@ -29,14 +28,6 @@ func (bot *robot) handleAssign(e *sdk.NoteEvent) error {
 		currentAssignee = e.Issue.Assignee.Login
 	}
 
-	currentCollaborators := func() sets.String {
-		c := sets.NewString()
-		for _, v := range e.Issue.Collaborators {
-			c.Insert(v.Login)
-		}
-		return c
-	}
-
 	writeComment := func(s string) error {
 		return bot.cli.CreateIssueComment(org, repo, number, s)
 	}
@@ -52,7 +43,7 @@ func (bot *robot) handleAssign(e *sdk.NoteEvent) error {
 		}
 
 		newOne := assign.UnsortedList()[0]
-		if c := currentCollaborators(); c.Len() > 0 && c.Has(newOne) {
+		if assigneeIsIssueCollaborator(e.Issue.Collaborators, newOne) {
 			return writeComment(fmt.Sprintf(msgCollaboratorCantAsAssignee, newOne))
 		}
 
@@ -78,4 +69,14 @@ func (bot *robot) handleAssign(e *sdk.NoteEvent) error {
 	}
 
 	return nil
+}
+
+func assigneeIsIssueCollaborator(collaborators []sdk.UserHook, assignee string) bool {
+	for _, v := range collaborators {
+		if v.Name == assignee {
+			return true
+		}
+	}
+
+	return false
 }
