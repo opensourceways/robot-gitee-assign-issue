@@ -6,7 +6,6 @@ import (
 
 	sdk "gitee.com/openeuler/go-gitee/gitee"
 	"github.com/opensourceways/community-robot-lib/giteeclient"
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 const (
@@ -27,14 +26,6 @@ func (bot *robot) handleAssign(e *sdk.NoteEvent) error {
 	currentAssignee := ""
 	if e.Issue.Assignee != nil {
 		currentAssignee = e.Issue.Assignee.Login
-	}
-
-	currentCollaborators := func() sets.String {
-		c := sets.NewString()
-		for _, v := range e.Issue.Collaborators {
-			c.Insert(v.Login)
-		}
-		return c
 	}
 
 	writeComment := func(s string) error {
