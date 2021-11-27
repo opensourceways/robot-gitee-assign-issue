@@ -43,7 +43,7 @@ func (bot *robot) handleAssign(e *sdk.NoteEvent) error {
 		}
 
 		newOne := assign.UnsortedList()[0]
-		if assigneeIsIssueCollaborator(e.Issue.Collaborators, newOne) {
+		if isIssueCollaborator(e.Issue.Collaborators, newOne) {
 			return writeComment(fmt.Sprintf(msgCollaboratorCantAsAssignee, newOne))
 		}
 
@@ -71,7 +71,7 @@ func (bot *robot) handleAssign(e *sdk.NoteEvent) error {
 	return nil
 }
 
-func assigneeIsIssueCollaborator(collaborators []sdk.UserHook, assignee string) bool {
+func isIssueCollaborator(collaborators []sdk.UserHook, assignee string) bool {
 	for _, v := range collaborators {
 		if v.Name == assignee {
 			return true
