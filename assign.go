@@ -9,12 +9,10 @@ import (
 )
 
 const (
-	msgAssignDone                 = "This issue is assigned to: ***%s***."
 	msgMultipleAssignee           = "Can only assign one assignee to the issue."
 	msgAssignRepeatedly           = "This issue is already assigned to ***%s***. Please do not assign repeatedly."
 	msgNotAllowAssign             = "This issue can not be assigned to ***%s***. Please try to assign to the repository collaborators."
-	msgUnassignDone               = "***%s*** is unassigned from this issue."
-	msgNotAllowUnassign           = "***%s*** can not be unassigned from this issue. Please try to unassign the assignee from this issue."
+	msgNotAllowUnassign           = "***%s*** can not be unassigned from this issue. Please try to unassign the assignee of this issue."
 	msgCollaboratorCantAsAssignee = "The issue collaborator ***%s*** cannot be assigned as the assignee at the same time."
 )
 
@@ -49,7 +47,7 @@ func (bot *robot) handleAssign(e *sdk.NoteEvent) error {
 
 		err := bot.cli.AssignGiteeIssue(org, repo, number, newOne)
 		if err == nil {
-			return writeComment(fmt.Sprintf(msgAssignDone, newOne))
+			return nil
 		}
 		if _, ok := err.(giteeclient.ErrorForbidden); ok {
 			return writeComment(fmt.Sprintf(msgNotAllowAssign, newOne))
@@ -59,10 +57,7 @@ func (bot *robot) handleAssign(e *sdk.NoteEvent) error {
 
 	if unassign.Len() > 0 {
 		if unassign.Has(currentAssignee) {
-			if err := bot.cli.UnassignGiteeIssue(org, repo, number, ""); err != nil {
-				return err
-			}
-			return writeComment(fmt.Sprintf(msgUnassignDone, currentAssignee))
+			return bot.cli.UnassignGiteeIssue(org, repo, number, "")
 		} else {
 			return writeComment(fmt.Sprintf(msgNotAllowUnassign, strings.Join(unassign.UnsortedList(), ",")))
 		}
