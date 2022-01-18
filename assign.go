@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	sdk "gitee.com/openeuler/go-gitee/gitee"
 	"github.com/opensourceways/community-robot-lib/giteeclient"
+	sdk "github.com/opensourceways/go-gitee/gitee"
 )
 
 const (
@@ -17,20 +17,19 @@ const (
 )
 
 func (bot *robot) handleAssign(e *sdk.NoteEvent) error {
-	ne := giteeclient.NewIssueNoteEvent(e)
-	org, repo := ne.GetOrgRep()
-	number := ne.GetIssueNumber()
+	org, repo := e.GetOrgRepo()
+	number := e.GetIssueNumber()
 
 	currentAssignee := ""
 	if e.Issue.Assignee != nil {
-		currentAssignee = e.Issue.Assignee.Login
+		currentAssignee = e.GetIssue().GetAssignee().GetLogin()
 	}
 
 	writeComment := func(s string) error {
 		return bot.cli.CreateIssueComment(org, repo, number, s)
 	}
 
-	assign, unassign := parseCmd(ne.GetComment(), ne.GetCommenter())
+	assign, unassign := parseCmd(e.GetComment().GetBody(), e.GetCommenter())
 	if n := assign.Len(); n > 0 {
 		if n > 1 {
 			return writeComment(msgMultipleAssignee)
@@ -41,7 +40,7 @@ func (bot *robot) handleAssign(e *sdk.NoteEvent) error {
 		}
 
 		newOne := assign.UnsortedList()[0]
-		if isIssueCollaborator(e.Issue.Collaborators, newOne) {
+		if isIssueCollaborator(e.GetIssue().GetCollaborators(), newOne) {
 			return writeComment(fmt.Sprintf(msgCollaboratorCantAsAssignee, newOne))
 		}
 

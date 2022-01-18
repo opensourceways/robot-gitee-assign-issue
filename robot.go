@@ -3,10 +3,9 @@ package main
 import (
 	"errors"
 
-	sdk "gitee.com/openeuler/go-gitee/gitee"
-	libconfig "github.com/opensourceways/community-robot-lib/config"
-	"github.com/opensourceways/community-robot-lib/giteeclient"
-	libplugin "github.com/opensourceways/community-robot-lib/giteeplugin"
+	"github.com/opensourceways/community-robot-lib/config"
+	"github.com/opensourceways/community-robot-lib/robot-gitee-framework"
+	sdk "github.com/opensourceways/go-gitee/gitee"
 	"github.com/sirupsen/logrus"
 )
 
@@ -26,24 +25,23 @@ type robot struct {
 	cli iClient
 }
 
-func (bot *robot) NewPluginConfig() libconfig.PluginConfig {
+func (bot *robot) NewConfig() config.Config {
 	return &configuration{}
 }
 
-func (bot *robot) getConfig(cfg libconfig.PluginConfig) (*configuration, error) {
+func (bot *robot) getConfig(cfg config.Config) (*configuration, error) {
 	if c, ok := cfg.(*configuration); ok {
 		return c, nil
 	}
 	return nil, errors.New("can't convert to configuration")
 }
 
-func (bot *robot) RegisterEventHandler(p libplugin.HandlerRegitster) {
+func (bot *robot) RegisterEventHandler(p framework.HandlerRegitster) {
 	p.RegisterNoteEventHandler(bot.handleNoteEvent)
 }
 
-func (bot *robot) handleNoteEvent(e *sdk.NoteEvent, cfg libconfig.PluginConfig, log *logrus.Entry) error {
-	ne := giteeclient.NewNoteEventWrapper(e)
-	if !ne.IsIssue() || !ne.IsCreatingCommentEvent() {
+func (bot *robot) handleNoteEvent(e *sdk.NoteEvent, cfg config.Config, log *logrus.Entry) error {
+	if !e.IsIssue() || !e.IsCreatingCommentEvent() {
 		return nil
 	}
 
@@ -52,7 +50,7 @@ func (bot *robot) handleNoteEvent(e *sdk.NoteEvent, cfg libconfig.PluginConfig, 
 		return err
 	}
 
-	if config.configFor(ne.GetOrgRep()) == nil {
+	if config.configFor(e.GetOrgRepo()) == nil {
 		return nil
 	}
 
